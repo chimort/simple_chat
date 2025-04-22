@@ -33,7 +33,6 @@ func handleConnection(w http.ResponseWriter, r *http.Request, b *broker.Broker) 
 	}
 	log.Printf("%s вошел в комнату %s\n", username, room)
 
-
 	b.Join(room, c)
 	b.Broadcast(room, []byte(c.UserName+" Вошел в комнату!"))
 	defer func() {
@@ -45,49 +44,49 @@ func handleConnection(w http.ResponseWriter, r *http.Request, b *broker.Broker) 
 	go c.WritePump()
 
 	c.ReadPump(func(msg []byte) {
-	msgStr := strings.TrimSpace(string(msg))
-	log.Printf("[%s]: %s", c.UserName, msgStr)
+		msgStr := strings.TrimSpace(string(msg))
+		log.Printf("[%s]: %s", c.UserName, msgStr)
 
-	if strings.HasPrefix(msgStr, "/create ") {
-		newRoom := strings.TrimSpace(strings.TrimPrefix(msgStr, "/create "))
-		if newRoom == "" {
-			c.Send <- []byte("Использование: /create <имя_комнаты>")
-		} else if b.CreateRoom(newRoom) {
-			c.Send <- []byte("Комната создана: " + newRoom)
-		} else {
-			c.Send <- []byte("Комната уже существует: " + newRoom)
-		}
-		return
-	}
-
-	switch {
-	case msgStr == "/who":
-		users := b.GetUsernames(room)
-		reply := "Сейчас в комнате: " + strings.Join(users, ", ")
-		c.Send <- []byte(reply)
-
-	case msgStr == "/rooms":
-		rooms := b.GetRooms()
-		reply := "Доступные комнаты: " + strings.Join(rooms, ", ")
-		c.Send <- []byte(reply)
-
-	case strings.HasPrefix(msgStr, "/join "):
-		newRoom := strings.TrimSpace(strings.TrimPrefix(msgStr, "/join "))
-		if newRoom != room {
-			b.Leave(room, c)
-			b.Broadcast(room, []byte(c.UserName + " вышел из комнаты"))
-
-			room = newRoom
-			b.Join(room, c)
-			b.Broadcast(room, []byte(c.UserName + " вошел в комнату"))
-
-			c.Send <- []byte("Вы вошли в комнату: " + room)
+		if strings.HasPrefix(msgStr, "/create ") {
+			newRoom := strings.TrimSpace(strings.TrimPrefix(msgStr, "/create "))
+			if newRoom == "" {
+				c.Send <- []byte("Использование: /create <имя_комнаты>")
+			} else if b.CreateRoom(newRoom) {
+				c.Send <- []byte("Комната создана: " + newRoom)
+			} else {
+				c.Send <- []byte("Комната уже существует: " + newRoom)
+			}
+			return
 		}
 
-	default:
-		fullMsg := []byte(c.UserName + ": " + msgStr)
-		b.Broadcast(room, fullMsg)
-	}
+		switch {
+		case msgStr == "/who":
+			users := b.GetUsernames(room)
+			reply := "Сейчас в комнате: " + strings.Join(users, ", ")
+			c.Send <- []byte(reply)
+
+		case msgStr == "/rooms":
+			rooms := b.GetRooms()
+			reply := "Доступные комнаты: " + strings.Join(rooms, ", ")
+			c.Send <- []byte(reply)
+
+		case strings.HasPrefix(msgStr, "/join "):
+			newRoom := strings.TrimSpace(strings.TrimPrefix(msgStr, "/join "))
+			if newRoom != room {
+				b.Leave(room, c)
+				b.Broadcast(room, []byte(c.UserName+" вышел из комнаты"))
+
+				room = newRoom
+				b.Join(room, c)
+				b.Broadcast(room, []byte(c.UserName+" вошел в комнату"))
+
+				c.Send <- []byte("Вы вошли в комнату: " + room)
+			}
+
+		default:
+			fullMsg := []byte(c.UserName + ": " + msgStr)
+			b.Broadcast(room, fullMsg)
+		}
 	})
 }
 

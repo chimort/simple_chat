@@ -59,7 +59,6 @@ func (b *Broker) GetRooms() []string {
 	return rooms
 }
 
-
 func (b *Broker) CreateRoom(room string) bool {
 	_, loaded := b.rooms.LoadOrStore(room, &sync.Map{})
 	if !loaded {
@@ -84,11 +83,10 @@ func (b *Broker) Broadcast(room string, msg []byte) {
 	}
 }
 
-
 func (b *Broker) cleanupRoom(room string) {
 	if room_interf, ok := b.rooms.Load(room); ok {
 		roomMap := room_interf.(*sync.Map)
-		var count int 
+		var count int
 		roomMap.Range(func(key, value any) bool {
 			count++
 			return true
