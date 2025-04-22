@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Server</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { width: 100%; max-width: 600px; margin: 0 auto; }
+        #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+        #input { width: 100%; padding: 10px; margin-top: 10px; }
+        button { padding: 10px; margin: 10px 0; }
+        .message { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div id="chat">
+        <h2>Чат</h2>
+        <div>
+            <label for="username">Имя пользователя: </label>
+            <input type="text" id="username" placeholder="Введите ваше имя" />
+        </div>
+        <div>
+            <label for="room">Комната: </label>
+            <input type="text" id="room" placeholder="Введите название комнаты или /create <room>" />
+        </div>
+        <button id="joinButton">Войти в комнату</button>
+
+        <div id="messages"></div>
+
+        <input type="text" id="messageInput" placeholder="Введите сообщение" />
+        <button id="sendMessageButton">Отправить сообщение</button>
+    </div>
+
+    <script>
+        const joinButton = document.getElementById("joinButton");
+        const messageInput = document.getElementById("messageInput");
+        const messagesDiv = document.getElementById("messages");
+        let socket;
+
+        joinButton.addEventListener("click", function() {
+            const username = document.getElementById("username").value;
+            const room = document.getElementById("room").value || "default";
+            if (!username) {
+                alert("Введите имя пользователя!");
+                return;
+            }
+
+            const url = `ws://localhost:8080/ws?username=${encodeURIComponent(username)}&room=${encodeURIComponent(room)}`;
+            socket = new WebSocket(url);
+
+            socket.onopen = () => {
+                console.log("Подключение установлено.");
+                messagesDiv.innerHTML += "<div class='message'>Подключено к серверу.</div>";
+            };
+
+            socket.onmessage = (event) => {
+                const message = event.data;
+                messagesDiv.innerHTML += `<div class='message'>${message}</div>`;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            };
+
+            socket.onerror = (error) => {
+                console.error("Ошибка WebSocket:", error);
+            };
+
+            socket.onclose = () => {
+                console.log("Соединение закрыто.");
+                messagesDiv.innerHTML += "<div class='message'>Соединение закрыто.</div>";
+            };
+        });
+
+        document.getElementById("sendMessageButton").addEventListener("click", function() {
+            const message = messageInput.value.trim();
+            if (message && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(message);
+                messageInput.value = ""; 
+            }
+        });
+    </script>
+</body>
+</html>
